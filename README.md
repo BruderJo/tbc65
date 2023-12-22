@@ -42,7 +42,7 @@ Der BANK Befehl funktioniert ebenfalls.
 Die Befehle waren auf dem C64 einfacher umgesetzt. Der Mega65 benötigt dank mehr Memory auch mehr Aufwand bei der Umsetzung. Mit lda_far und sta_far Routinen funktioniert das auch leidlich.
 
     PRINT INT
-Integer Zahlen wurden beim C64 mit Hilfe einer ROM Routine ausgegeben. Das entsprechende Gegenstück im Mega65 ROM habe ich mangels ROM Listing nicht gefunden, also blieb nur eine eigene Funktion. Die gibt negative Zahlen korrekt aus. Eine -1 wird als -1 auf den Bildschirm geschrieben. Das war beim Original kannte nur 0..65535.
+Integer Zahlen wurden beim C64 mit Hilfe einer ROM Routine ausgegeben. Das entsprechende Gegenstück im Mega65 ROM habe ich mangels ROM Listing nicht gefunden, also blieb nur eine eigene Funktion. Die gibt negative Zahlen korrekt aus. Eine -1 wird als -1 auf den Bildschirm geschrieben. Das Original kannte nur 0..65535.
 
 ## Ideen
 Natürlich schweben mir für eine Folgeversion schon Erweiterungen vor. Das aber erst nachdem alle korrekt läuft.
