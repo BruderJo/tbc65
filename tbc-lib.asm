@@ -2,6 +2,20 @@
 ; TBC-LIB
 ; -------------------------------------------
 ;
+; Assembler: VASM Oldstyle
+; Shell Befehle
+;   OPT=-mega65                     # enable 45GS02 instructions
+;   OPT="$OPT -Lall"                # list all symbol
+;   OPT="$OPT -maxerrors=50"
+;   OPT="$OPT -chklabels"
+;   OPT="$OPT -Fbin -cbm-prg"       # select binary output: write Commodore PRG header
+;   vasm6502_oldstyle $OPT -L $1.list $1.asm -o $1.prg
+;
+;vasm 1.9b (c) in 2002-2022 Volker Barthelmann
+;vasm 6502 cpu backend 0.11a (c) 2002,2006,2008-2012,2014-2022 Frank Wille
+;vasm oldstyle syntax module 0.17 (c) 2002-2022 Frank Wille
+;vasm test output module 1.0 (c) 2002 Volker Barthelmann
+
 ; BASIC PROGRAMS START AT $2001
 	org $2001
 
@@ -20,9 +34,6 @@ BOOT
  jmp PGMSTART
 
 ; -------------------------------------------
-; g = 1  --- muldiv
-; g = 2  --- prt str
-; g = 4  --- prt num
 
 num equ $16
 numhi equ $17
@@ -223,6 +234,10 @@ peek1 jsr $ff74
  and #$ff
  rts
 
+
+; fuellen wir die verbleibenden Bytes, 
+; damit der Basic-Start bei $2200 erfolgt.
+
 libend
 	blk $2200-libend,$55
 
@@ -231,4 +246,3 @@ PGMSTART
 ; -------------------------------------------
 
    END
-
