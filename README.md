@@ -5,7 +5,8 @@ Das Programm benötigt einen Mega65 im Original oder Emulator sowie Grubis Mega 
 
 Basis des Programms ist der Micro Compiler von Vic Cortes, der in der deutschen RUN (Juli 1986) erschien. (US Ausgabe #20 Aug 85)
 
-Der Compiler erzeugt eine Assemblerdatei, die mit dem Mega Assembler geladen und in ein ausführbares Programm übersetzt werden kann.
+Der Compiler tbc65 erzeugt eine Assemblerdatei, die mit dem Mega Assembler geladen und in ein ausführbares Programm übersetzt werden kann.
+Die Version tbc65-3 erzeugt ohne Umweg ein ausführbares Programm.
 
 ## Wichtiger Hinweis
 
