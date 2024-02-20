@@ -1,18 +1,17 @@
 # tbc65 - Mega65 Tiny Basic Compiler
 
 TBC65 ist ein Compiler für ein einfaches Subset von Basic-Befehlen.
-Das Programm benötigt einen Mega65 im Original oder Emulator sowie Grubis Mega Assembler.
+Das Programm benötigt einen Mega65 im Original oder Emulator.
 
 Basis des Programms ist der Micro Compiler von Vic Cortes, der in der deutschen RUN (Juli 1986) erschien. (US Ausgabe #20 Aug 85)
 
-Der Compiler tbc65 erzeugt eine Assemblerdatei, die mit dem Mega Assembler geladen und in ein ausführbares Programm übersetzt werden kann.
-Die Version tbc65-3 erzeugt ohne Umweg ein ausführbares Programm.
+Der Compiler tbc65 erzeugt ein ablauffähiges Programm auf Disk.
 
 ## Wichtiger Hinweis
 
 Das Programm ist Work-in-Progress. Es sind noch nicht alle Funktionen umgesetzt und getestet.
 Außerdem können vorhandene Programmierfehler zum Abbruch führen.
-Der Spaghetti-Code des Originals wurde weitgehend beibehalten und fortgesetzt :-)
+Ich habe damit begonnen, dem Code des Originals eine neue und übersichtlichere Struktur zu geben.
 
 ## Doku zum Original
 
@@ -20,6 +19,7 @@ Ich empfehle https://github.com/EgonOlsen71/microcompiler
 bzw die US Ausgabe: https://archive.org/details/run-magazine-20
 
 ## Erweiterungen
+Da die Ausgabe nicht mehr als Assembler Code erfolgt, fallen die Optionen weg.
 
     REM$A <assembler befehle>
 fügt zusätzliche Assembler Befehl in den übersetzten Code ein
