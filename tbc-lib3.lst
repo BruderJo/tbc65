@@ -1,0 +1,358 @@
+    1               ; -------------------------------------------
+    2               ; TBC-LIB
+    3               ; -------------------------------------------
+    4               ; assemble with Bit Shift Assembler
+    5               ; https://github.com/MEGA65/BSA
+    6               ;
+    7               ; command: bsa tbc-lib3 -n
+    8               ; -------------------------------------------
+    9
+   10               .CPU  45GS02
+   11               ;
+   12               ; BASIC PROGRAMS START AT $2001
+   13 ffffffff          	.org $2001
+   15                  .store $2001,$2200-$2001,"tbc-lib3.prg"
+   16
+   17 2001 1e 20       .word LLINK,2023
+   18 2005 de 9c 3a    .byte $DE,$9C,':'	      ; GRAPHIC CLR
+   19 2008 fe 02 30 3a .byte $FE,$02,'0',':'	; BANK 0
+   20 200c 9e          .byte $9E		         ; SYS 8224
+   21 200d 38 32 32    .byte '8224:'
+   22 2012 8f          .byte $8F		         ; REM
+   23 2013 54 42 43    .byte 'TBC 231223'	   ; TBC + yymmdd
+   24 201d 00          .byte 0
+   25 201e          LLINK
+   26 201e 00 00       .byte 0,0
+   27               ;=================
+   28
+   29 2020          BOOT
+   30 2020 20 44 20    jsr init
+   31 2023 4c 00 22    jmp PGMSTART
+   32
+   33 0016          num = $16
+   34 0017          numhi = $17
+   35
+   36 2dc0          kernel_stop =   $2dc0
+   37 2dc2          kernel_end  =   $2dc2
+   38
+   39               ; -------------------------------------------
+   40               ; Sprungtabelle
+   41               ; -------------------------------------------
+   42
+   43 2026 4c 44 20    jmp init
+   44 2029 4c 45 20 	jmp prtsgn
+   45 202c 4c 64 20 	jmp prtint
+   46 202f 4c b5 20 	jmp muldiv
+   47 2032 4c 02 21    jmp bank
+   48 2035 4c 06 21 	jmp sys
+   49 2038 4c 21 21 	jmp poke
+   50 203b 4c 2c 21 	jmp peek
+   51 203e 4c 44 21    jmp endstop
+   52 2041 00 00 00 	.byte 0,0,0
+   53
+   54               ; -------------------------------------------
+   55 2044          init
+   56               ; -------------------------------------------
+   57 2044 60          rts
+   58
+   59               ; -------------------------------------------
+   60 2045          prtsgn
+   61               ; -------------------------------------------
+   62 2045 85 16       sta num+0
+   63 2047 86 17       stx num+1
+   64
+   65 2049 24 17       bit num+1
+   66 204b 10 1b       bpl prtint0
+   67 204d 48          pha
+   68 204e a9 2d       lda #'-'
+   69 2050 20 d2 ff    jsr $ffd2
+   70
+   71 2053 38          sec
+   72 2054 a9 00       lda #0
+   73 2056 e5 16       sbc num
+   74 2058 85 16       sta num
+   75 205a a9 00       lda #0
+   76 205c e5 17       sbc num+1
+   77 205e 85 17       sta num+1
+   78 2060 68          pla
+   79 2061 4c 68 20    jmp prtint0
+   80
+   81               ; -----------------------------------------------------------------
+   82               ;  Print 16-bit unsigned decimal number
+   83               ;  https://beebwiki.mdfs.net/Number_output_in_6502_machine_code
+   84               ; -----------------------------------------------------------------
+   85               ;  On entry, num=number to print
+   86               ;            pad=0 or pad character (eg '0' or ' ')
+   87               ;  On entry at PrDec16Lp1,
+   88               ;            Y=(number of digits)*2-2, eg 8 for 5 digits
+   89               ;  On exit,  A,X,Y,num,pad corrupted
+   90               ;  Size      69 bytes
+   91               ; -----------------------------------------------------------------
+   92
+   93
+   94               ; -------------------------------------------
+   95 2064          prtint
+   96               ; -------------------------------------------
+   97 2064 85 16       sta num+0   ;lo byte
+   98 2066 86 17       stx num+1   ;hi byte
+   99
+  100 2068          prtint0
+  101 2068 a9 00       lda #0
+  102 206a 8d aa 20    sta prtint_p
+  103 206d a0 08       LDY #8                ;                   :\ Offset to powers of ten
+  104 206f          prtint1
+  105 206f a2 ff       LDX #$FF
+  106 2071 38          SEC                  ; Start with digit=-1
+  107 2072          prtint2
+  108 2072 a5 16       LDA num+0
+  109 2074 f9 ab 20    SBC prtint10+0,Y
+  110 2077 85 16       STA num+0            ; Subtract current tens
+  111 2079 a5 17       LDA num+1
+  112 207b f9 ac 20    SBC prtint10+1,Y
+  113 207e 85 17       STA num+1
+  114
+  115 2080 e8          INX
+  116 2081 b0 ef       BCS prtint2        ;  Loop until <0
+  117
+  118 2083 a5 16       LDA num+0
+  119 2085 79 ab 20    ADC prtint10+0,Y
+  120 2088 85 16       STA num+0            ;  Add current tens back in
+  121 208a a5 17       LDA num+1
+  122 208c 79 ac 20    ADC prtint10+1,Y
+  123 208f 85 17       STA num+1
+  124 2091 8a          TXA
+  125 2092 d0 07       BNE prtint_Digit                     ; Not zero, print it
+  126
+  127 2094 ad aa 20    LDA prtint_p
+  128 2097 d0 09       BNE prtint_prt
+  129 2099 f0 0a       BEQ prtint_next
+  130
+  131 209b          prtint_Digit
+  132 209b a2 30       LDX #'0'
+  133 209d 8e aa 20    STX prtint_p                      ; No more zero padding
+  134 20a0 09 30       ORA #'0'                        ; Print this digit
+  135
+  136 20a2          prtint_prt
+  137 20a2 20 d2 ff    JSR $ffd2
+  138
+  139 20a5          prtint_next
+  140 20a5 88          DEY
+  141 20a6 88          DEY
+  142 20a7 10 c6       BPL prtint1                  ; Loop for next digit
+  143 20a9 60          RTS
+  144
+  145 20aa 00       prtint_p byte 0
+  146
+  147 20ab          prtint10
+  148 20ab 01 00       .word 1
+  149 20ad 0a 00       .word 10
+  150 20af 64 00       .word 100
+  151 20b1 e8 03       .word 1000
+  152 20b3 10 27       .word 10000
+  153
+  154
+  155               ; -------------------------------------------
+  156 20b5          muldiv
+  157               ; -------------------------------------------
+  158 20b5 85 63     sta 99
+  159 20b7 86 64     stx 100
+  160 20b9 a2 00     ldx #0
+  161 20bb 86 65     stx 101
+  162 20bd 86 66     stx 102
+  163 20bf a0 10     ldy #16
+  164 20c1 90 22     bcc mul16
+  165 20c3          div16
+  166 20c3 06 61     asl 97
+  167 20c5 26 62     rol 98
+  168 20c7 26 65     rol 101
+  169 20c9 26 66     rol 102
+  170 20cb 38        sec
+  171 20cc a5 65     lda 101
+  172 20ce e5 63     sbc 99
+  173 20d0 aa        tax
+  174 20d1 a5 66     lda 102
+  175 20d3 e5 64     sbc 100
+  176 20d5 90 06     bcc *+8
+  177 20d7 86 65     stx 101
+  178 20d9 85 66     sta 102
+  179 20db e6 61     inc 97
+  180 20dd 88        dey
+  181 20de d0 e3     bne div16
+  182
+  183 20e0          div16a
+  184 20e0 a5 61     lda 97
+  185 20e2 a6 62     ldx 98
+  186 20e4 60        rts
+  187
+  188 20e5          mul16
+  189 20e5 46 66     lsr 102
+  190 20e7 66 65     ror 101
+  191 20e9 66 62     ror 98
+  192 20eb 66 61     ror 97
+  193 20ed 88        dey
+  194 20ee 30 f0     bmi div16a
+  195 20f0 90 f3     bcc mul16
+  196 20f2 18        clc
+  197 20f3 a5 65     lda 101
+  198 20f5 65 63     adc 99
+  199 20f7 85 65     sta 101
+  200 20f9 a5 66     lda 102
+  201 20fb 65 64     adc 100
+  202 20fd 85 66     sta 102
+  203 20ff 18        clc
+  204 2100 90 e3     bcc mul16
+  205
+  206
+  207               ; -------------------------------------------
+  208 2102          bank
+  209               ; -------------------------------------------
+  210 2102 8d d1 02    sta     $02D1
+  211 2105 60          rts
+  212
+  213               ; -------------------------------------------
+  214 2106          sys
+  215               ; -------------------------------------------
+  216 2106 85 04     sta $04 ;pclo
+  217 2108 86 03     stx $03 ;pchi
+  218 210a ad d1 02  lda $02d1
+  219 210d 85 02     sta $02
+  220 210f ad 04 11  lda $1104
+  221 2112 48        pha
+  222 2113 a9 01     lda #$01
+  223 2115 1c 04 11  trb $1104
+  224 2118 20 6e ff  jsr $ff6e
+  225 211b 68        pla
+  226 211c 8d 04 11  sta $1104
+  227 211f 58        cli
+  228 2120 60        rts
+  229
+  230               ; -------------------------------------------
+  231 2121          poke
+  232               ;sta_far (.x),y
+  233               ; -------------------------------------------
+  234 2121 08        php
+  235 2122 db        phz
+  236 2123 ab d1 02  ldz $2d1
+  237 2126 20 77 ff  jsr $ff77
+  238 2129 fb        plz
+  239 212a 28        plp
+  240 212b 60        rts
+  241
+  242               ; -------------------------------------------
+  243 212c          peek
+  244               ;lda_far (.a),y
+  245               ; -------------------------------------------
+  246 212c 08        php
+  247 212d db        phz
+  248 212e da        phx
+  249 212f aa        tax
+  250 2130 ab d1 02  ldz $2d1
+  251 2133 b5 01     lda 1,x
+  252 2135 c9 20     cmp #$20
+  253 2137 b0 02     bcs peek1
+  254 2139 a3 00     ldz #0
+  255 213b 20 74 ff peek1 jsr $ff74
+  256 213e fa        plx
+  257 213f fb        plz
+  258 2140 28        plp
+  259 2141 29 ff     and #$ff
+  260 2143 60        rts
+  261
+  262
+  263               ; -------------------------------------------
+  264 2144          endstop
+  265               ; -------------------------------------------
+  266               ; Carry =  0 -> end
+  267               ; Carry <> 0 -> stop
+  268
+  269 2144 b0 03       bcs endstop1
+  270 2146 4c c2 2d    jmp kernel_end
+  271 2149          endstop1
+  272 2149 4c c0 2d    jmp kernel_stop
+  273
+  274                  ;fill bytes from here to code start $2200
+  275 214c          libend
+  276 214c 55 55 55 	.fill $2200-libend ($55) ; 180 bytes
+  277
+  278               ; -------------------------------------------
+  279 2200          PGMSTART
+  280               ; -------------------------------------------
+  281
+  282 2200             END
+
+
+   31 Symbols
+-------------
+num                            $0016    33D    62     63     65     73
+                                        74     76     77     97     98
+                                       108    110    111    113    118
+                                       120    121    123
+numhi                          $0017    34
+LLINK                          $201e    25D    17
+BOOT                           $2020    29
+init                           $2044    55D    30     43
+prtsgn                         $2045    60D    44
+prtint                         $2064    95D    45
+prtint0                        $2068   100D    66     79
+prtint1                        $206f   104D   142
+prtint2                        $2072   107D   116
+prtint_Digit                   $209b   131D   125
+prtint_prt                     $20a2   136D   128
+prtint_next                    $20a5   139D   129
+prtint_p                       $20aa   145D   102    127    133
+prtint10                       $20ab   147D   109    112    119    122
+muldiv                         $20b5   156D    46
+div16                          $20c3   165D   181
+div16a                         $20e0   183D   194
+mul16                          $20e5   188D   164    195    204
+bank                           $2102   208D    47
+sys                            $2106   214D    48
+poke                           $2121   231D    49
+peek                           $212c   243D    50
+peek1                          $213b   255D   253
+endstop                        $2144   264D    51
+endstop1                       $2149   271D   269
+libend                         $214c   275D   276
+PGMSTART                       $2200   279D    31
+END                            $2200   282
+kernel_stop                    $2dc0    36D   272
+kernel_end                     $2dc2    37D   270
+num                            $0016    33D    62     63     65     73
+                                        74     76     77     97     98
+                                       108    110    111    113    118
+                                       120    121    123
+numhi                          $0017    34
+num                            $0016    33D    62     63     65     73
+                                        74     76     77     97     98
+                                       108    110    111    113    118
+                                       120    121    123
+prtint10                       $20ab   147D   109    112    119    122
+mul16                          $20e5   188D   164    195    204
+prtint_p                       $20aa   145D   102    127    133
+prtint0                        $2068   100D    66     79
+init                           $2044    55D    30     43
+kernel_end                     $2dc2    37D   270
+kernel_stop                    $2dc0    36D   272
+PGMSTART                       $2200   279D    31
+libend                         $214c   275D   276
+endstop1                       $2149   271D   269
+endstop                        $2144   264D    51
+peek1                          $213b   255D   253
+peek                           $212c   243D    50
+poke                           $2121   231D    49
+sys                            $2106   214D    48
+bank                           $2102   208D    47
+div16a                         $20e0   183D   194
+div16                          $20c3   165D   181
+muldiv                         $20b5   156D    46
+prtint_next                    $20a5   139D   129
+prtint_prt                     $20a2   136D   128
+prtint_Digit                   $209b   131D   125
+prtint2                        $2072   107D   116
+prtint1                        $206f   104D   142
+prtint                         $2064    95D    45
+prtsgn                         $2045    60D    44
+LLINK                          $201e    25D    17
+END                            $2200   282
+BOOT                           $2020    29
+numhi                          $0017    34
