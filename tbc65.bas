@@ -1,701 +1,750 @@
-   10 goto 80
-   20 rem 2023-12-22
-   30 print "saving to disk: tbc65"
-   40 save "@0:tbc65"
-   50 print "done":dir "tbc65*"
-   60 end
-   70 rem
-   80 print"{clr}{down}{wht}{swlc}{dish}Tiny-Basic-Compiler"
-   90 rem german run 86/7,pg 83  update 19.7.1987
-  100 rem micro-compiler by vic cortes - run august 1985,pg 62
-  110 rem updated for c64
-  120 rem updated and commented for mega65
-  130 rem --------------------------------------------
-  150 rem
-  160 gosub 4550: rem init
-  230 gosub 6730: rem pass1
-  240 goto  2350: rem pass2
-  250 :
-  300 rem --------------------------------------------
-  310 rem print line to mega-ass format
-  320 rem - print#3,a$:return
-  330 m1$=m1$+a$
-  340 l$=""
-  350 if len(m1$)=0 then 390
-  360 a$=left$(m1$,1):m1$=mid$(m1$,2)
-  369 rem ':' dann neue Zeile
-  370 if a$=chr$(58) then print#3,c$+l$+c$:goto 340
-  375 l$=l$+a$
-  380 goto 350
-  390 print#3,c$+l$+c$
-  395 return
-  400 :
-  410 rem --------------------------------------------
-  420 rem print line to mega-ass format (no nl)
-  430 rem do not output now. just remember
-  440 rem - print#3,a$;: return
-  450 m1$=m1$+a$
-  460 return
-  470 :
-  600 rem -----------------------------------------------
-  610 rem open file a1$ for input as #2
-  620 :
-  630 a1$=a1$+",p,r"
-  640 dopen#2,(a1$)
-  650 rem print "file open #2:";a1$
-  660 if ds then 700
-  670 return
-  680 :
-  690 rem error reading file
-  700 print "error reading "+a1$
-  710 dclose#2:rem print "dclose#2"
-  720 end
-  730 :
-  800 rem -----------------------------------------------
-  810 rem open file "p-".a1$.",s,w" for output as #3
-  820 :
-  830 rem a1$="p-"+a1$+".asm"
-  835 a1$=a1$+".asm"
-  840 dopen#3,("@"+a1$),w
-  850 if ds then 930
-  860 rem print "file open #3:";a1$
-  870 a$="; tiny basic":gosub 320
-  880 a$=";":gosub 320
-  890 a$=" .basic 'r-"+s$+"'":gosub 320
-  900 a$=";":gosub 320
-  910 return
-  920 :
-  930 print "error writing file "+a1$
-  940 dclose#3:rem print "dclose#3"
-  950 end
- 1000 :
- 1010 rem"{swlc}  Erste variable"
- 1020 :
- 1030 gosub 1820
- 1040 if v>0 then a$=" lda i"+v$+": ldx i"+v$+"+1":gosub 320
- 1050 if v=0 then a$=" lda #<"+str$(n)+": ldx #>"+str$(n):gosub 320
- 1060 return
- 1070 rem -----------------------------------
- 1080 :
- 1200 rem -----------------------------------
- 1210 rem"{swlc}  Ausdruck"
- 1220 rem -----------------------------------
- 1230 :
- 1240 p=0:if p828(u)=$c2 then u=u+2:p=1  :rem peek
- 1250 gosub 1030
- 1260 if u>100 then print"{rvon}Overflow":ec=ec+1:return
- 1270 o=0:b=p828(u)
- 1280 if b=$ad then 1630:rem /
- 1290 if b=$ac then 1630:rem *
- 1300 if b=$aa then o=109:a$=" clc":gosub 320:rem +
- 1310 if b=$ab then o=237:a$=" sec":gosub 320:rem -
- 1320 if b=$af then o=45                 :rem and
- 1330 if b=$b0 then o=13                 :rem or
- 1340 if o=0 then 1740
- 1350 u=u+1:gosub 1820:if v=0 then 1420
- 1360 if o=109 then a$=" adc i"+v$:gosub 320
- 1370 if o=237 then a$=" sbc i"+v$:gosub 320
- 1380 if o=45  then a$=" and i"+v$:gosub 320
- 1390 if o=13  then a$=" ora i"+v$:gosub 320
- 1400 goto 1460
- 1410 rem
- 1420 if o=109 then a$=" adc #<"+str$(n):gosub 320
- 1430 if o=237 then a$=" sbc #<"+str$(n):gosub 320
- 1440 if o=45  then a$=" and #<"+str$(n):gosub 320
- 1450 if o=13  then a$=" ora #<"+str$(n):gosub 320
- 1460 a$=" tay: txa":gosub 320
- 1470 if v=0 then 1540
- 1480 if o=109 then a$=" adc i"+v$+"+1":gosub 320
- 1490 if o=237 then a$=" sbc i"+v$+"+1":gosub 320
- 1500 if o=45  then a$=" and i"+v$+"+1":gosub 320
- 1510 if o=13  then a$=" ora i"+v$+"+1":gosub 320
- 1520 goto 1580
- 1530 rem
- 1540 if o=109 then a$=" adc #>"+str$(n):gosub 320
- 1550 if o=237 then a$=" sbc #>"+str$(n):gosub 320
- 1560 if o=45  then a$=" and #>"+str$(n):gosub 320
- 1570 if o=13  then a$=" ora #>"+str$(n):gosub 320
- 1580 a$=" tax: tya":gosub 320
- 1590 goto 1260
- 1600 rem ------------------------------
- 1610 rem"{swlc}  Mul/Div"
- 1620 rem ------------------------------
- 1630 a$=" sta 97: stx 98":gosub 320
- 1640 u=u+1:gosub 1030
- 1650 g=g or 1
- 1660 a=24
- 1670 if b=173 then a=56:a$=" sec":gosub 320:rem /
- 1680 if a=24 then a$=" clc":gosub 320
- 1690 a$=" jsr muldiv":gosub 320
- 1700 goto 1260
- 1710 rem ------------------------------
- 1720 rem"{swlc}  PEEK(ausdr)"
- 1730 rem ------------------------------
- 1740 if p=0 then return
- 1745 g = g or 8
- 1750 a$=" sta 34: stx 35":gosub 320
- 1760 a$=" lda #34: ldy #0":gosub 320
- 1770 a$=" jsr peek":gosub 320
- 1780 u=u+1:p=0:goto 1260
- 1790 rem ------------------------------
- 1800 rem"{swlc}  Find"
- 1810 rem ------------------------------
- 1820 n=0:v=0
- 1830 if p828(u)<65 then 1850
- 1840 if p828(u)<91 then 2030
- 1850 t=0
- 1860 if p828(u)=170 then u=u+1:goto 1880
- 1870 if p828(u)=171 then u=u+1:t=1
- 1880 if p828(u)<48 or p828(u)>57 then print"{rvon}ERROR BEI";u    ;p828(u):ec=ec+1
- 1890 if p828(u)>47 and p828(u)<58 then n=n*10+p828(u)-48:u=u+1:goto 1890
- 1900 if t=0 then 1920
- 1910 n=65536-n
- 1920 return
- 1930 :
- 2000 rem ------------------------------
- 2010 rem"{swlc}  VARIABLE"
- 2020 rem ------------------------------
- 2030 v=p828(u):v$=chr$(v)
- 2040 v=p828(u+1)
- 2050 if (v>64 and v<91)or(v>47 and v<58) then v$=v$+chr$(v):u=u+1:goto 2040
- 2060 u=u+1:t=p828(u)
- 2070 if t>90 then 2110:rem if >'z' ?
- 2080 if t<32 then 2110
- 2090 if (t=59)or(t=44)or(t=41) then 2110:rem ; , )
- 2100 if t>35 then 2060:rem if ># ?
- 2110 v$=left$(v$,6):if vp=0 then 2170:rem first var at all? -->
- 2120 for i=0 to vp-1:if v$=v$(i) then i=998
- 2130 next
- 2140 v=1
- 2150 if i=999 then 2210:rem var found, return
- 2160 rem save varname
- 2170 v$(vp)=v$:vp=vp+1:d=asc(v$)
- 2180 print "var ";v$;", vp=";vp
- 2190 rem -----
- 2200 rem"{swlc}  H/L"
- 2210 h%=d/256:l=d-h%*256:h=h%
- 2220 return
- 2300 :
- 2310 rem ----------------------------------------
- 2320 rem"{swlc}  Source lesen"
- 2330 rem ----------------------------------------
- 2340 :
- 2350 print "pass2"
- 2360 :
- 2370 a1$=s$:gosub 630: rem open read
- 2380 dclose#2
- 2390 a1$=s$:gosub 630: rem open read
- 2400 :
- 2410 a1$=s$:gosub 830: rem open write
- 2420 :
- 2430 a$=" ; program = "+s$
- 2440 a$=" ;":gosub 320:a$=" ; *="+s$:gosub 320
- 2450 rem print "file#3 opened"
- 2460 get#2,a1$,a2$:rem  ti$="000000"
- 2470 get#2,a1$,a2$:t=asc(a1$+z$)+256*asc(a2$+z$)
- 2480 rem print "lineptr = ";t
- 2490 if t=0 then 5020:rem ptr to next line is zero? -> jump
- 2500 get#2,a1$,a2$:rem read line number
- 2510 t=asc(a1$+z$)+asc(a2$+z$)*256
- 2520 print t;" ";
- 2530 q=0:rem unset quote flag
- 2540 a$=" ; zeile"+str$(t):gosub 320
- 2550 s(m)=t:m=m+1: rem print"{left}";t;
- 2560 if s(m-1)>=l(ll) then a$="l"+mid$(str$(t),2)+" ":gosub 320:ll=ll+1:rem label
- 2570 rem
- 2580 j=0  :rem  if peek(653) then 640
- 2590 rem read symbol and store into buffer
- 2600 get#2,b$:if st then 5020
- 2610 b=asc(b$+z$):p828(j)=b
- 2620 if q or (b<>32 and b>0) then j=j+1
- 2630 if b=0 then 2730
- 2640 if b=34 then q=not q
- 2650 if b<128 or q then print b$;
- 2660 rem -------------------------
- 2670 rem print token in b
- 2680 rem -------------------------
- 2690 rem 
- 2700 if b>127 and b<204 and q=0 then gosub 8010:print b$;
- 2710 if q then 2600
- 2720 rem -------------------------
- 2730 if b<32 then print:gosub 2820:goto 2470
- 2740 if b=167 then gosub 2820:goto 2580
- 2750 goto 2600
- 2800 rem -------------------- evaluate command
- 2810 rem  command 
- 2820 b=p828(0  ):u=1  :p828(j)=0:p828(j+1)=0
- 2830 if b=136 then 3100:rem let
- 2840 rem if b=128 or b=144 then print#3,"jmp $a474":return:rem c64 end stop
- 2850 if b=128 or b=144 then a$=" jmp endstop":gosub 320:return:rem end stop
- 2860 if b=142 then a$=" rts":gosub 320:return:rem return
- 2870 if b=158 then 4240:rem sys
- 2880 if b=159 then 6320:rem open
- 2890 if b=139 then 3320:rem if
- 2900 if b=160 then 6640:rem close
- 2910 if b=153 then 3510:rem print
- 2920 if b=152 then 7650:rem print#
- 2930 if b=151 then 4310:rem poke
- 2940 if b=161 then 7530:rem get
- 2950 if b=129 then 3950:rem for
- 2960 if b=130 then 4170:rem next
- 2970 if b=143 and p828(u)=36 then 5510:rem rem$
- 2980 if b=143 then return:rem rem
- 2990 if b=137 then a$=" jmp l":gosub440:goto 3890:rem goto
- 3000 if b=141 then a$=" jsr l":gosub440:goto 3890:rem gosub
- 3005 if b=254 and p828(u)=2 then 4400:rem bank
- 3010 if b<48 or b>90 then 3050
- 3020 if b>64 then 3110
- 3030 if b<58 then u=0  :b=137:goto 2990
- 3040 rem command not found. show error
- 3050 print"{rvon}ERROR:";u    ;p828(u)
- 3060 ec=ec+1
- 3070 return
- 3080 rem -----
- 3090 rem"{swlc}  V=Ausdr."
- 3100 for i=0   to 140:p828(i)=p828(i+1):next
- 3110 u=0  :if p828(u)<65 or p828(u)>90 then 3050
- 3120 rem print "Var=Expr"
- 3130 v=p828(u)
- 3140 v$=chr$(v):u=u+1
- 3150 v=p828(u)
- 3160 if(v>64 and v<91)or(v>47 and v<58)then v$=v$+chr$(v):u=u+1:goto 3150
- 3170 if p828(u)<>178 then 3050
- 3180 vv$=v$:u=u+1:gosub 1240
- 3190 v$=vv$:gosub 2110
- 3200 a$=" sta i"+v$:gosub 320
- 3210 a$=" stx i"+v$+"+1":gosub 320
- 3220 return
- 3230 rem -----
- 3300 :
- 3310 rem"{swlc}  IF/THEN"
- 3320 print "IF/THEN"
- 3330 gosub 1240:w=p828(u):if w<177 then 3050
- 3340 if w>179 then 3050
- 3350 a$=" sta 36: stx 37":gosub 320
- 3360 u=u+1
- 3370 if w=179 and p828(u)=177 then w=180:u=u+1
- 3380 if w=177 and p828(u)=179 then w=180:u=u+1
- 3390 gosub 1240
- 3400 a$=" cpx 37: beq *+6":gosub 320
- 3410 f=a
- 3420 a$=" l"+mid$(str$(l(ll)),2)
- 3430 if w=180 then a$=" beq"+a$+": bne *+8: cmp 36: beq"+a$
- 3440 if w=178 then a$=" bne"+a$+": bne *+8: cmp 36: bne"+a$
- 3450 if w=179 then a$=" bcc"+a$+": bcs *+8: cmp 36: bcc"+a$;": beq"+a$
- 3460 if w=177 then a$=" bcs"+a$+": bcc *+8: cmp 36: bcs"+a$;": beq"+a$
- 3470 gosub 320
- 3480 return
- 3490 rem -----
- 3500 rem"{swlc}  PRINT"
- 3510 w=p828(u):if w<32 then 3850
- 3520 if w=59 and p828(u+1)<32 then return
- 3530 if w=59 then u=u+1:goto 3510
- 3540 if w=199 then 3660:rem" CHR$
- 3550 if w=34  then 3720:rem" String
- 3560 rem -----
- 3570 rem"{swlc}  PRINT Ausdr."
- 3580 rem print#3," lda #29"
- 3590 rem print#3," jsr $ffd2"
- 3600 gosub 1240:rem a$=" stx 34: tax: lda 34":gosub 320:rem a/x tauschen
- 3605 g=g or 4
- 3610 a$=" jsr prtint":gosub 320:rem Zahl in a/x ausgeben
- 3611 rem C64 $bdcd, C128 $8e32, C65 $647f, m65 $????
- 3620 a$=" lda #32: jsr $ffd2":gosub 320
- 3630 goto 3510
- 3640 rem -----
- 3650 rem"{swlc}  PRINT CHR$(Ausdr.)"
- 3660 u=u+1:if p828(u)<>40 then 3050
- 3670 u=u+1:gosub 1240
- 3680 a$=" jsr $ffd2":gosub 320
- 3690 u=u+1:goto 3510
- 3700 rem -----
- 3710 rem"{swlc}  PRINT String"
- 3720 a$=" jsr print":gosub 320
- 3730 g=g or 2
- 3740 a$=" .text '":gosub 440
- 3750 i=0
- 3760 i=i+1:u=u+1:if u>100 then 3820
- 3770 if i>20 then i=1:a$="'":gosub 320:a$=" .text '":gosub 440
- 3780 if p828(u)=34 then 3820
- 3790 if p828(u)=0 then 3820
- 3800 a$=chr$(p828(u)):gosub 440
- 3810 goto 3760
- 3820 a$="'":gosub 320
- 3830 a$=" .byte 0":gosub 320
- 3840 u=u+1:goto 3510
- 3850 a$=" lda #13: jsr $ffd2":gosub 320
- 3860 return
- 3870 rem -----
- 3880 rem"{swlc}  GOTO/GOSUB"
- 3890 gosub 1820
- 3900 if v=0 then v$=mid$(str$(n),2)
- 3910 a$=v$:gosub 320
- 3920 return
- 3930 rem -----
- 3940 rem"{swlc}  FOR"
- 3950 u=3:gosub 1240
- 3960 lp(lp)=s(m-1)
- 3970 a1$=mid$(str$(lp(lp)),2)
- 3980 a$=" jmp lf"+a1$:gosub 320
- 3990 hu=u:u=1
- 4000 a$="f"+a1$+" ":gosub 440
- 4010 gosub 1030:u=hu+1
- 4020 a$=" sta 36: stx 37":gosub 320
- 4030 gosub 1240
- 4040 a$=" cpx 37: beq *+6: bcs *+13: bcc *+8":gosub 320
- 4050 a$=" cmp 36: beq *+4: bcs *+5":gosub 320
- 4060 xa(xa)=s(m-1):xa=xa+1:a$=" jmp ff"+a1$:gosub 320
- 4070 if p828(u)<>169 then a$=" lda #1: ldx #0":gosub320:goto 4090
- 4080 u=u+1:gosub 1240
- 4090 u=0  :b=170:gosub 1300
- 4100 d=a:gosub 2210:
- 4110 a$="lf"+a1$+" ":gosub 440
- 4120 lp=lp+1
- 4130 u=1  :gosub 2030:goto 3200
- 4140 rem -----
- 4150 rem
- 4160 rem"{swlc}  NEXT"
- 4170 lp=lp-1
- 4180 a1$=mid$(str$(lp(lp)),2)
- 4190 a$=" jmp f"+a1$:gosub 320
- 4200 a$="ff"+a1$+" nop":gosub 320
- 4210 return
- 4220 rem -----
- 4230 rem"{swlc}  SYS"
- 4240 gosub 1240
- 4245 g = g or 8
- 4250 a$=" jsr syscall":gosub 320
- 4280 return
- 4290 rem -----
- 4300 rem"{swlc}  POKE"
- 4310 gosub 1240
- 4315 g = g or 8
- 4320 a$=" sta 36: stx 37":gosub 320
- 4330 rem
- 4340 if p828(u)<>44 then 3050
- 4350 u=u+1:gosub 1240
- 4360 a$=" ldy #0: ldx #36":gosub 320
- 4370 a$=" jsr poke":gosub 320
- 4380 return
- 4390 rem"{swlc}  BANK"
- 4400 u=u+1:gosub 1240
- 4410 g = g or 8
- 4420 a$=" sta $2d1": gosub 320
- 4430 return
- 4450 rem
- 4490 :
- 4500 rem ------------------------------------
- 4510 rem"{swlc}  *** INIT ***"
- 4520 rem ------------------------------------
- 4530 :
- 4540 :
- 4550 dim n(200)
- 4560 dim a(200)
- 4570 dim s(800)    :rem current line
- 4580 dim l(800)
- 4590 dim t$(200)
- 4600 dim lp(10)
- 4610 dim xa(10)
- 4620 dim v$(200)   :rem variable names
- 4630 dim p828(200) :rem read buffer, c64: ab 828, c128: ab adr 2816
- 4640 a=0:rem
- 4650 b=0:rem
- 4660 u=0:rem Ptr to p828()
- 4670 i=0:rem
- 4680 j=0:rem
- 4690 k=0:rem
- 4692 m=0:rem
- 4700 v=0:rem
- 4710 d=0:rem
- 4720 c=0:rem
- 4730 h=0:rem
- 4740 l=0:rem  pointer to ll() line number
- 4750 q=0:rem  quote flag (inside strings)
- 4760 w=0:rem
- 4770 z=0: rem ascflag 
- 4780 lp=0:rem loop ptr, index fuer for-next
- 4790 xa=0:rem
- 4800 vp=0:rem max. index variable pointer
- 4810 ec=0:rem error counter
- 4820 c$=chr$(34)
- 4830 :
- 4840 :
- 4850 foreground 15:background 0
- 4860 s$="test.bas":s=49152
- 4870 z$=chr$(0):cr$=chr$(13)
- 4880 input "{down}Quellfile (*=Ende) ";s$
- 4890 restore:if s$="*" then end
- 4900 rem input "Startadr. ";s:print
- 4910 rem a1$=s$:gosub 520
- 4920 return
- 5000 rem --------------------------------------------
- 5010 rem"{swlc}  Ende"
- 5020 print "End of input file"
- 5025 a$=";":gosub 320
- 5026 a$=" rts":gosub 320
- 5027 a$=";":gosub 320
- 5030 if (z and 64)=64 then 5180
- 5040 if (g and 1)=0 then 5110
- 5050 a$=";":gosub 320
- 5060 print:print"MULDIV"
- 5070 read d$
- 5080 if d$="end" then a$=";":gosub 320:goto 5110
- 5090 a$=d$:gosub 320
- 5100 goto 5070
- 5110 if (g and 2)=0 then 5150
- 5120 print"PRINT"
- 5130 a$="print pla: sta 34: pla: sta 35: ldy #0"::gosub 320
- 5135 a$="print1 inc 34: bne *+4: inc 35: lda (34),y: beq *+8: jsr $ffd2":gosub 320
- 5140 a$=" jmp print1: lda 35: pha: lda 34: pha: rts":gosub 320
- 5145 a$=";":gosub 320
- 5150 if (g and 4)=0 then 5170
- 5151 print"PRTINT"
- 5152 rem signed print. vorzeichen + 2er komplement
- 5153 a$="prtint sta 34: stx 35: bit 35: bpl prtint0: pha: lda #'-': jsr $ffd2":gosub 320
- 5154 a$=" sec: lda #0: sbc 34: sta 34: lda #0: sbc 35: sta 35: pla":gosub 320
- 5155 rem print num in 22/23
- 5156 a$="prtint0 lda #0: sta 24: ldy #8:prtint1 ldx #$ff: sec":gosub 320
- 5157 a$="prtint2 lda 34: sbc prt10,y: sta 34: lda 35: sbc prt10+1,y: sta 35":gosub 320
- 5158 a$=" inx: bcs prtint2: lda 34: adc prt10,y: sta 34: lda 35: adc prt10+1,y: sta 35":gosub 320
- 5160 a$=" txa: bne prtint3: lda 24: bne prtint4: beq prtint5":gosub 320
- 5161 a$="prtint3 ldx #'0': stx 24: ora #'0'":gosub 320
- 5162 a$="prtint4 jsr $ffd2:prtint5 dey: dey: bpl prtint1: rts":gosub 320
- 5163 a$="prt10 .word 1: .word 10: .word 100: .word 1000: .word 10000":gosub 320
- 5165 a$=";":gosub 320
- 5170 if (g and 8)=0 then 5180
- 5171 a$="syscall sta $04: stx $05: lda $1a: sta $02":gosub 320:rem sys, peek, poke function
- 5172 a$=" lda $1104: pha: lda #$01: trb $1104: jsr $ff6e":gosub 320
- 5173 a$=" pla: sta $1104: cli: rts":gosub320
- 5174 rem sta_far (.x),y
- 5175 a$="poke php: phz: ldz $2d1: jsr $ff77: plz: plp: rts": gosub 320
- 5176 rem lda_far (.a),y
- 5177 a$="peek php: phz: phx: tax: lfz $2d1: lda 1,x: cmp #$20: bcs peek1":gosub 320
- 5178 a$=" ldz #0:peek1 jsr $ff74: plx: plz: plp: and #$ff: rts":gosub 320
- 5179 rem
- 5180 a$="endstop rts":gosub 320:rem c64= jmp $a474, m65=?
- 5185 print "z=";z:if z>127 then 5280: rem flag: no vars
- 5190 print"VARIABLE (";vp;")"
- 5200 if vp=0 then 5280: rem jump, if no var read
- 5210 a$=" ; variable": gosub 320
- 5220 for i=0 to vp-1
- 5230    a$="i"+v$(i)+" .word 0"
- 5240    print a$
- 5250    gosub 320   
- 5260 next i
- 5270 :
- 5280 a$=" .end":gosub 320
- 5290 print#3,"*"
- 5300 dclose#2:dclose#3:rem print "close 2:close 3"
- 5310 :
- 5320 print"{down}Errors";ec
- 5330 print s$;" compiliert":rem ", Zeit:";ti$
- 5340 end
- 5350 rem --------------------------------------------
- 5360 :
- 5370 :
- 5380 rem"{swlc}  Mul/Div-Data"
- 5390 data"muldiv sta 99: stx 100: ldx #0: stx 101: stx 102"
- 5400 data " ldy #16: bcc mul16"
- 5410 data "div16 asl 97: rol 98: rol 101: rol 102: sec"
- 5420 data " lda 101: sbc 99: tax: lda 102: sbc 100: bcc *+8"
- 5430 data " stx 101: sta 102: inc 97: dey: bne div16"
- 5440 data "div16a lda 97: ldx 98: rts"
- 5450 data "mul16 lsr 102: ror 101: ror 98: ror 97: dey: bmi div16a"
- 5460 data " bcc mul16: clc: lda 101: adc 99: sta 101"
- 5470 data " lda 102: adc 100: sta 102: clc: bcc mul16"
- 5480 data "end"
- 5490 rem
- 5500 rem"{swlc}  REM$" - compiler flags
- 5510 u=u+2:w=p828(u-1):if w<>86 then 5540:rem v (print var def in assembler output)
- 5520 z=z and 127
- 5530 return
- 5540 if w<>78 and p828(u)<>86 then 5560:rem nv (print no vars in assembler output)
- 5550 z=z or 128:return
- 5560 if w<>81 then 5640:rem q (quit compiler if error count >0)
- 5570 if ec=0 then return
- 5580 :
- 5590 dclose#3:dclose#2:rem print "close 2:close 3"
- 5600 :
- 5610 print:print"***Abgebrochen nach";ec;"Fehler(n)"
- 5620 end
- 5630 :
- 5640 if w<>65 then 5700:rem a (insert assembler command)
- 5650 u=u+1
- 5660 w=p828(u):u=u+1
- 5670 if w>0 then a$=chr$(w):gosub 440:goto5660
- 5680 a$="":gosub 320
- 5690 return
- 5700 if w<>76 then return:rem l (include mul/div library)
- 5710 z=z or 64
- 5720 return
- 5730 :
- 6300 rem"{swlc}  OPEN"
- 6310 :
- 6320 gosub 1240:a$=" pha":gosub 320:rem parameter fn
- 6330 if p828(u)<>44 then 3050
- 6340 u=u+1:gosub 1240:a$=" pha":gosub 320:rem parameter gn
- 6350 if p828(u)<>44 then 3050
- 6360 u=u+1:gosub 1240:a$=" pha":gosub 320:rem parameter sa
- 6370 if p828(u)<>44 then 3050
- 6380 l$="":u=u+1
- 6390 if p828(u)<>34 then 6460
- 6400 u=u+1:w=p828(u):if w=0 or w=34 then 6540
- 6410 l$=l$+chr$(w)
- 6420 a$=" lda #"+str$(w)+": sta"+str$(511+len(l$)):gosub 320
- 6430 goto 6400
- 6440 :
- 6450 rem -----
- 6460 if p828(u)<>199 then 3050:rem chr$()
- 6470 u=u+1:if p828(u)<>40 then 3050
- 6480 u=u+1:gosub 1240:l$=l$+" "
- 6490 a$=" sta"+str$(511+len(l$)):gosub 320
- 6500 u=u+1:if p828(u)=0 then 6540
- 6510 if p828(u)<>170 then 3050
- 6520 u=u+1:goto 6460
- 6530 :
- 6540 a$=" lda #"+len(l$)+";open":gosub 320
- 6550 a$=" ldy #2:ldx #0":gosub 320
- 6560 a$=" jsr $ffbd":gosub 320
- 6570 a$=" pla: tay: pla: tax: pla":gosub 320
- 6580 a$=" jsr $ffba":gosub 320
- 6590 a$=" jsr $ffc0":gosub 320
- 6600 return
- 6610 :
- 6620 rem"{swlc}  CLOSE"
- 6630 :
- 6640 a$=" jsr $ffcc ;clrchn":gosub 320
- 6650 gosub 1240
- 6660 a$=" jsr $ffc3 ;close":gosub 320
- 6670 return
- 6680 :
- 6700 rem ----------------------------------------------
- 6710 rem"{swlc}  PASS1 Zeilennummer eintragen"
- 6720 :
- 6730 print "pass1"
- 6740 a1$=s$:gosub 630: rem open file
- 6750 :
- 6760 get#2,a1$,a2$:ll=0:rem ignore start addr., init line pointer
- 6770 get#2,a1$,a2$:t=asc(a1$+z$)+256*asc(a2$+z$):rem read ptr next basic line
- 6780 if t=0 then 7090:rem basic end
- 6790 get#2,a1$,a2$:t=asc(a1$+z$)+256*asc(a2$+z$):rem read line#
- 6800 rem  print "next line num=";t
- 6810 q=0:rem reset quote flag
- 6820 if f then l(ll)=t:ll=ll+1:print t
- 6830 m=m+1:f=0:q=0
- 6840 j=0:rem j=828
- 6850 get#2,b$:if st then 7090
- 6860 b=asc(b$+z$):p828(j)=b:rem poke j,b
- 6870 q=(b=34)and(q=0)
- 6880 if q or b=32 then 6850
- 6890 j=j+1:if b>31 then 6850
- 6900 rem basic line read. continue
- 6910 u=0:rem u=828
- 6920 b=p828(u):u=u+1:
- 6930 if b=0 then 6770:rem end of line
- 6940 rem 139=if
- 6950 if b=139 then f=1:goto 7020:rem set if flag
- 6960 rem 137=goto
- 6970 rem 141=gosub
- 6980 rem remember line number if goto/gosub
- 6990 if b=137 or b=141 then gosub 1820:l(ll)=n:ll=ll+1:print n:goto 7000
- 7000 goto 6920
- 7010 rem 167=then
- 7020 b=p828(u):u=u+1:if b<>167 and b<>0 then 7020
- 7030 if b=0 then 6770
- 7040 b=p828(u)
- 7050 if b<48 or b>57 then 6920
- 7060 gosub 1820:l(ll)=n:ll=ll+1>:rem print n
- 7070 goto 6920
- 7080 rem" Finish input line and start post-work"
- 7090 print
- 7100 rem
- 7110 rem
- 7120 rem -----
- 7130 ll=ll-1:rem set ll to latest line number
- 7140 if ll<=0 then l(0)=65535:goto 7350:rem no jumps?
- 7150 rem" Array l() sortieren"
- 7160 for j=0 to ll-1
- 7170 for i=j+1 to ll
- 7180 if l(i)>=l(j) then 7210
- 7190 rem switch array elements
- 7200 a=l(i):l(i)=l(j):l(j)=a
- 7210 next i
- 7220 next j
- 7230 j=0:a=ll
- 7240 rem clean duplicate entries
- 7250 for i=0 to a-1
- 7260 if l(i)=l(i+1) then for j=i+1 to a-1:l(j)=l(j+1):next:l(a)=0:a=a-1
- 7270 next i
- 7280 if j then a=a+1:j=0:goto 7250
- 7290 ll=a
- 7300 if l(a)=0 then a=a-1:goto 7290
- 7310 l(ll+1)=65535:rem end marker at last array pos
- 7320 rem array l() is now sorted
- 7330 rem display all line numbers sorted
- 7340 for i=0 to ll:print l(i):next
- 7350 rem return from subroutine
- 7360 ll=0:rem set line# ptr to first pos
- 7370 print "pass1 done"
- 7380 dclose#2:print "close 2"
- 7390 dclose u8:print "dclose u8"
- 7400 return
- 7500 rem -----------------------------------------
- 7510 rem"{swlc}  GET#"
- 7520 :
- 7530 b=p828(u):if b<>35 then 7570
- 7540 u=u+1:gosub 1240:
- 7550 a$=" tax: jsr $ffc6 ;chkin":gosub 320
- 7560 u=u+1
- 7570 a$=" jsr $ffe4 ;getin":gosub 320
- 7580 gosub 1820:if v=0 then 3050
- 7590 a$=" ldx #0: sta i"+v$+": stx i"+v$+"+1":gosub 320
- 7600 if b=35 then a$=" jsr $ffcc ;clrchn":gosub 320
- 7610 return
- 7620 rem ----------
- 7630 rem"{swlc}  PRINT#"
- 7640 :
- 7650 gosub 1240
- 7660 a$=" tax: jsr $ffc9 ;chkout":gosub 320
- 7670 u=u+1
- 7680 gosub 3510
- 7690 a$=" jsr $ffcc ;clrchn":gosub 320
- 7700 return
- 7710 rem
- 8000 rem ----------
- 8005 :
- 8010 rem convert token in var b into text in var b$
- 8015 :
- 8020 b$="<"+str$(b)+">":rem default if token out of scope
- 8030 if b=$80 then b$="END"
- 8040 if b=$81 then b$="FOR"
- 8050 if b=$82 then b$="NEXT"
- 8060 if b=$88 then b$="LET"
- 8070 if b=$89 then b$="GOTO"
- 8080 if b=139 then b$="IF"
- 8090 if b=$8e then b$="RETURN"
- 8100 if b=$8d then b$="GOSUB"
- 8110 if b=143 then b$="REM"
- 8120 if b=144 then b$="STOP"
- 8130 if b=153 then b$="PRINT"
- 8140 if b=152 then b$="PRINT#"
- 8150 if b=151 then b$="POKE"
- 8160 if b=158 then b$="SYS"
- 8170 if b=159 then b$="OPEN"
- 8180 if b=160 then b$="CLOSE"
- 8190 if b=161 then b$="GET"
- 8200 if b=$a4 then b$="TO"
- 8210 if b=$a7 then b$="THEN"
- 8220 if b=$a8 then b$="NOT"
- 8230 if b=$a9 then b$="STEP"
- 8240 if b=$aa then b$="+"
- 8250 if b=$ab then b$="-"
- 8260 if b=$ac then b$="*"
- 8270 if b=$ad then b$="/"
- 8280 if b=$af then b$="AND"
- 8290 if b=$b0 then b$="OR"
- 8300 if b=$b1 then b$=">"
- 8310 if b=$b2 then b$="="
- 8320 if b=$b3 then b$=">"
- 8330 if b=$c2 then b$="PEEK"
- 8340 if b=$cb then b$="GO"
- 8350 return
+#RetroDevStudio.MetaData.BASIC:8193,BASIC 65,lowercase,10,10
+10 GOTO 180
+20 REM ------------------------------------
+30 REM 2024-02-03
+40 REM ------------------------------------
+50 PRINT "SAVING TO DISK"
+60 SAVE "@0:TBC3B",8
+70 PRINT "DONE":DIR "TBC3B"
+80 END
+90 :
+100 REM ------------------------------------
+110 REM TBC IS BASED ON MICROCOMPILER
+120 REM GERMAN RUN 86/7,PG 83  UPDATE 19.7.1987
+130 REM MICRO-COMPILER BY VIC CORTES - RUN AUGUST 1985,PG 62
+140 REM UPDATED AND COMMENTED FOR MEGA65
+150 REM --------------------------------------------
+160 REM
+170 :
+180 REM ------------------------------------
+190 REM"  *** {SHIFT-I}{SHIFT-N}{SHIFT-I}{SHIFT-T} ***"
+200 REM ------------------------------------
+210 :
+220 DIM SC(200)   :REM STRING KONSTANTE
+230 DIM L(800)    :REM RELEVANTE ZEILENNUMMERN; JETZT ALLE ZEILENNUMMERN
+240 DIM LA(800)   :REM UND IHRE ADDRESSEN
+250 DIM LP(10),LF(10):REM FOR..NEXT SCHLEIFEN ADRESSEN
+260 DIM XA(10)    :REM FOR..NEXT ADRESSEN
+270 DIM V$(200)   :REM VARIABLE NAMES
+280 DIM VA(200)   :REM VARIABLEN ADRESSEN
+290 DIM P828(200) :REM READ BUFFER, C64: AB 828, C128: AB ADR 2816
+300 :
+310 L=0:REM  POINTER TO LL() LINE NUMBER
+320 LP=0:REM LOOP PTR, INDEX FUER FOR-NEXT
+330 XA=0:REM
+340 VP=0:REM MAX. INDEX VARIABLE POINTER
+350 VO=0:REM VARIABLE OFFSET; STARTADRESSE VAR TABLE
+360 VE=0:REM VARIABLE AREA END. BEGINNING OF CONSTANT STRINGS (E.G. FILENAMES)
+370 SC=0:REM MAX ENTRY IN SC()
+380 :
+390 A=0:REM
+400 B=0:REM GELESENES BYTE
+410 U=0:REM INDEX TO P828()
+420 I=0:REM
+430 J=0:REM
+440 K=0:REM
+450 V=0:REM
+460 D=0:REM
+470 C=0:REM
+480 H=0:REM
+490 Q=0:REM  QUOTE FLAG (INSIDE STRINGS)
+500 W=0:REM
+510 Z=0: REM ASCFLAG
+520 :
+530 EC=0:REM ERROR COUNTER
+540 :
+550 C$=CHR$(34):Z$=CHR$(0):CR$=CHR$(13)
+560 OP=0: PC=$2200:REM PROGRAM COUNTER
+570 :
+580 T1%=0:REM TI STARTWERT
+590 :
+600 REM FOREGROUND 15:BACKGROUND 0
+610 :
+640 REM
+650 REM --------------------------------------------
+660 PRINT CHR$(147);CHR$(17);CHR$(5);CHR$(14);CHR$(8);"TINY-BASIC-COMPILER"
+670 REM --------------------------------------------
+680 REM
+690 PA=0
+700 :
+710 S$="*"
+720 PRINT:INPUT "QUELLFILE (*=ENDE) ";S$
+730 IF S$="*" OR S$="" THEN END
+740 :
+750 T1%=TI:REM ZEIT MERKEN
+760 PA=1:GOSUB 1350:REM PASS1
+770 REM WENN FEHLER, DANN STOP
+780 IF EC>0 THEN GOTO 800
+790 PA=2:GOSUB 1350:REM PASS2
+800 END
+810 :
+820 REM
+830 REM --------------------------------------------
+840 REM PRINT LINE TO BINARY
+850 REM --------------------------------------------
+860 REM
+870 :
+880 IF LEN(A$)=0 THEN RETURN
+890 IF PA=1 THEN GOTO 930
+900 FOR A=1 TO LEN(A$)
+910 PRINT#3,MID$(A$,A,1);
+920 NEXT A
+930 PC=PC+LEN(A$)
+940 RETURN
+950 :
+960 REM -----------------------------------------------
+970 REM OPEN FILE A1$ FOR INPUT AS #2
+980 REM -----------------------------------------------
+990 :
+1000 A1$=A1$+",P,R"
+1010 DOPEN#2,(A1$)
+1020 REM PRINT "FILE OPEN #2:";A1$
+1030 IF DS THEN GOTO 1070
+1040 RETURN
+1050 :
+1060 REM ERROR READING FILE
+1070 PRINT "ERROR READING "+A1$
+1080 DCLOSE#2:REM PRINT "DCLOSE#2"
+1090 END
+1100 :
+1110 REM
+1120 REM -----------------------------------------------
+1130 REM OPEN FILE "P-".A1$.",P,W" FOR OUTPUT AS #3
+1140 REM -----------------------------------------------
+1150 REM
+1160 IF PA<2 THEN GOTO 1290
+1170 A1$="R-"+A1$+""
+1180 REM DOPEN#3,("@"+A1$),W
+1190 DOPEN#3,("@"+A1$+",P"),W
+1200 IF DS THEN 1340
+1210 RESTORE:REM BASIC STUB UND RTL SCHREIBEN
+1220 READ A$:IF LEFT$(A$,1) ="*" THEN GOTO 1290
+1230 H=ASC(MID$(A$,1,1))-48:L=ASC(MID$(A$,2,1))-48
+1240 IF H>16 THEN H=H-7
+1250 IF L>16 THEN L=L-7
+1260 A=H*16+L
+1270 PRINT#3,CHR$(A);
+1280 GOTO 1220
+1290 RETURN
+1300 :
+1310 PRINT "ERROR WRITING FILE "+A1$
+1320 DCLOSE#3:REM PRINT "DCLOSE#3"
+1330 END
+1340 :
+1350 REM ----------------------------------------
+1360 REM"  {SHIFT-S}OURCE LESEN"
+1370 REM ----------------------------------------
+1380 :
+1390 PRINT "PASS ";PA
+1400 EC=0:LL=0:LP=0:SC=0:PC=$2200
+1410 VE=VO+2*VP+1:REM VARIABLE ENDE
+1420 A1$=S$:GOSUB 960: REM OPEN READ
+1430 DCLOSE#2
+1440 A1$=S$:GOSUB 960: REM OPEN READ
+1450 :
+1460 A1$=S$:GOSUB 1110: REM OPEN WRITE
+1470 :
+1480 REM A$=" ; PROGRAM = "+S$
+1490 REM A$=" ;":A$=" ; *="+S$
+1500 REM PRINT "FILE#3 OPENED"
+1510 GET#2,A1$,A2$:REM  TI$="000000"
+1520 GET#2,A1$,A2$:T=ASC(A1$+Z$)+256*ASC(A2$+Z$)
+1530 REM PRINT "LINEPTR = ";T
+1540 IF T=0 THEN GOTO 4130:REM PTR TO NEXT LINE IS ZERO? -> JUMP CODE ENDE
+1550 GET#2,A1$,A2$:REM READ LINE NUMBER
+1560 T=ASC(A1$+Z$)+ASC(A2$+Z$)*256
+1570 PRINT T;" ": PRINT"{UP}";
+1580 Q=0:REM UNSET QUOTE FLAG
+1590 REM A$=" ; ZEILE"+STR$(T)
+1600 L(LL)=T: LA(LL)=PC
+1610 LL=LL+1
+1620 REM
+1630 J=0:REM  EINE ZEILE LESEN
+1640 REM READ SYMBOL AND STORE INTO BUFFER
+1650 GET#2,B$:IF ST THEN GOTO 4130
+1660 B=ASC(B$+Z$):P828(J)=B
+1670 IF Q OR (B<>32 AND B>0) THEN J=J+1
+1680 IF B=0 THEN GOTO 1710
+1690 IF B=34 THEN Q=NOT Q
+1700 IF Q THEN GOTO 1650
+1710 IF B<32 THEN GOSUB 1750:GOTO 1520
+1720 IF B=$A7 THEN GOSUB 1750:GOTO 1630:REM 'THEN
+1730 GOTO 1650
+1740 :
+1750 REM ----------------------------------------
+1760 REM  EVALUATE COMMAND
+1770 REM ----------------------------------------
+1780 :
+1790 B=P828(0  ):U=1  :P828(J)=0:P828(J+1)=0
+1800 IF B=136 THEN GOTO 3890:REM LET
+1810 REM IF B=128 OR B=$90 THEN PRINT#3,"JMP $A474":RETURN:REM C64 END STOP
+1820 REM CHECK: LDA #$80:JSR TOKEN-EVAL-ROUTINE (C64 $A7E7)
+1830 IF B=$80 OR B=$90 THEN GOTO 6680:REM 'END STOP
+1840 IF B=142 THEN A$=CHR$($60):GOSUB 820:RETURN:REM 'RETURN
+1850 IF B=158 THEN GOTO 6350:REM 'SYS
+1860 IF B=159 THEN GOTO 6770:REM 'OPEN
+1870 IF B=139 THEN GOTO 4960:REM 'IF
+1880 IF B=160 THEN GOTO 7100:REM 'CLOSE
+1890 IF B=153 THEN GOTO 5310:REM 'PRINT
+1900 IF B=152 THEN GOTO 7360:REM 'PRINT#
+1910 IF B=151 THEN GOTO 6440:REM 'POKE
+1920 IF B=161 THEN GOTO 7190:REM 'GET
+1930 IF B=129 THEN GOTO 5880:REM 'FOR
+1940 IF B=130 THEN GOTO 6240:REM 'NEXT
+1950 IF B=143 AND P828(U)=36 THEN GOTO 4730:REM 'REM$
+1960 IF B=143 THEN RETURN:REM 'REM
+1970 IF B=137 THEN A$=CHR$($4C):GOTO 5760:REM 'GOTO
+1980 IF B=141 THEN A$=CHR$($20):GOTO 5760:REM 'GOSUB
+1990 IF B=254 AND P828(U)=2 THEN GOTO 6590:REM 'BANK
+2000 IF B<48 OR B>90 THEN E$="NUM OR CHAR EXPECTED":GOTO 2050
+2010 IF B>64 THEN GOTO 3940
+2020 IF B<58 THEN U=0:B=$A9:GOTO 1970:REM 'GOTO
+2030 E$="CMD NOT FOUND"
+2040 :
+2050 REM ----------------------------------------
+2060 REM SHOW ERROR
+2070 REM ----------------------------------------
+2080 :
+2090 PRINT"{DOWN}{RVSON}{SHIFT-E}{2SHIFT-R}{SHIFT-O}{SHIFT-R}: ";E$;": LINE";L(LL-1);" POS ";U;
+2100 PRINT " TOKEN ";P828(U);CHR$(157);"/$";RIGHT$(HEX$(P828(U)),2)
+2110 EC=EC+1:E$=""
+2120 RETURN
+2130 :
+2140 REM -----------------------------------
+2150 REM"  {SHIFT-E}RSTE VARIABLE"
+2160 REM -----------------------------------
+2170 :
+2180 GOSUB 3110
+2190 REM PRINT"1032: V=";V;"N=";N
+2200 REM " LDA #<"+STR$(N)+": LDX #>"+STR$(N)
+2210 IF V<>0 THEN GOTO 2260
+2220 D=N:GOSUB 3810
+2230 A$=CHR$($A9)+CHR$(L)+CHR$($A2)+CHR$(H):GOSUB 820
+2240 GOTO 2300
+2250 REM " LDA I"+V$+": LDX I"+V$+"+1"
+2260 REM PRINT"1045: V$=";V$;" D=";HEX$(D);" VL=";HEX$(VL);" VH=";HEX$(VH)
+2270 A$=CHR$($AD)+CHR$(VL)+CHR$(VH):GOSUB 820
+2280 D=D+1:GOSUB 3810
+2290 A$=CHR$($AE)+CHR$(L)+CHR$(H):GOSUB 820
+2300 RETURN
+2310 :
+2320 REM -----------------------------------
+2330 REM"  {SHIFT-A}USDRUCK"
+2340 REM -----------------------------------
+2350 :
+2360 P=0
+2370 IF P828(U)=$C2 THEN U=U+2:P=1  :REM PEEK
+2380 GOSUB 2180
+2390 IF U>100 THEN PRINT"{RVSON}LINE OVERFLOW":EC=EC+1:RETURN
+2400 O=0:B=P828(U)
+2410 IF B=$AD THEN GOTO 2830:REM '/
+2420 IF B=$AC THEN GOTO 2830:REM '*
+2430 REM " CLC"
+2440 IF B=$AA THEN O=109:A$=CHR$($18):GOSUB 820:REM '+
+2450 REM " SEC"
+2460 IF B=$AB THEN O=237:A$=CHR$($38):GOSUB 820:REM '-
+2470 IF B=$AF THEN O=45                        :REM 'AND
+2480 IF B=$B0 THEN O=13                        :REM 'OR
+2490 IF O=0 THEN GOTO 2970:REM PEEK
+2500 U=U+1:GOSUB 3110
+2510 IF V=0 THEN GOTO 2670:REM ZAHL? DANN GOTO
+2520 REM VARIABLE
+2530 A$=CHR$(VL)+CHR$(VH):DD=D:REM DEZIMAL MERKEN
+2540 IF O=109 THEN A$=CHR$($6D)+A$:GOSUB 820:REM ADC LOW
+2550 IF O=237 THEN A$=CHR$($ED)+A$:GOSUB 820:REM SBC
+2560 IF O=45  THEN A$=CHR$($2D)+A$:GOSUB 820:REM AND
+2570 IF O=13  THEN A$=CHR$($0D)+A$:GOSUB 820:REM ORA
+2580 A$=CHR$($A8)+CHR$($8A):GOSUB 820
+2590 D=D+1:GOSUB 3810:A$=CHR$(L)+CHR$(H)
+2600 IF O=109 THEN A$=CHR$($6D)+A$:GOSUB 820:REM ADC HI
+2610 IF O=237 THEN A$=CHR$($ED)+A$:GOSUB 820:REM SBC
+2620 IF O=45  THEN A$=CHR$($2D)+A$:GOSUB 820:REM AND
+2630 IF O=13  THEN A$=CHR$($0D)+A$:GOSUB 820:REM ORA
+2640 GOTO 2790
+2650 REM
+2660 REM NUM. OPERAND
+2670 D=N:GOSUB 3810:A$=CHR$(L)
+2680 IF O=109 THEN A$=CHR$($69)+A$:GOSUB 820:REM ADC #LOW
+2690 IF O=237 THEN A$=CHR$($E9)+A$:GOSUB 820:REM SBC #
+2700 IF O=45  THEN A$=CHR$($29)+A$:GOSUB 820:REM AND #
+2710 IF O=13  THEN A$=CHR$($09)+A$:GOSUB 820:REM ORA #
+2720 REM  TAY: TXA
+2730 A$=CHR$($A8)+CHR$($8A):GOSUB 820
+2740 A$=CHR$(H)
+2750 IF O=109 THEN A$=CHR$($69)+A$:GOSUB 820:REM ADC #HI
+2760 IF O=237 THEN A$=CHR$($E9)+A$:GOSUB 820:REM SBC #
+2770 IF O=45  THEN A$=CHR$($29)+A$:GOSUB 820:REM AND #
+2780 IF O=13  THEN A$=CHR$($09)+A$:GOSUB 820:REM ORA #
+2790 REM  TAX: TYA
+2800 A$=CHR$($AA)+CHR$($98):GOSUB 820
+2810 GOTO 2390
+2820 :
+2830 REM ------------------------------
+2840 REM"  {SHIFT-M}UL/{SHIFT-D}IV"
+2850 REM ------------------------------
+2860 :
+2870 A$=CHR$($85)+CHR$(97)+CHR$($86)+CHR$(98):GOSUB 820
+2880 U=U+1:GOSUB 2180
+2890 G=G OR 1
+2900 A=24
+2910 IF B=173 THEN A=56:A$=CHR$($38):GOSUB 820:REM /
+2920 IF A=24 THEN A$=CHR$($18):GOSUB 820
+2930 REM A$=" JSR MULDIV"
+2940 A$=CHR$($20)+CHR$($93)+CHR$($20):GOSUB 820
+2950 GOTO 2390
+2960 :
+2970 REM ------------------------------
+2980 REM"  {SHIFT-P}{2SHIFT-E}{SHIFT-K}(AUSDR)"
+2990 REM ------------------------------
+3000 :
+3010 IF P=0 THEN RETURN
+3020 G = G OR 8
+3030 REM A$=" STA 34: STX 35"
+3040 A$=CHR$($85)+CHR$(34)+CHR$($86)+CHR$(35):GOSUB 820
+3050 REM A$=" LDA #34: LDY #0"
+3060 A$=CHR$($A9)+CHR$(34)+CHR$($A0)+CHR$(0):GOSUB 820
+3070 REM A$=" JSR PEEK"
+3080 A$=CHR$($20)+CHR$($05)+CHR$($21):GOSUB 820
+3090 U=U+1:P=0:GOTO 2390
+3100 :
+3110 REM ------------------------------
+3120 REM"  {SHIFT-F}IND"
+3130 REM RETURN: V=0, DANN NUMERISCH IN N
+3140 REM         V>0, DANN VARIABLE IN V$
+3150 REM ------------------------------
+3160 :
+3170 N=0:V=0
+3180 IF P828(U)<65 THEN GOTO 3200
+3190 IF P828(U)<91 THEN GOTO 3530
+3200 T=0
+3210 IF P828(U)=170 THEN U=U+1:GOTO 3230
+3220 IF P828(U)=171 THEN U=U+1:T=1
+3230 IF P828(U)<48 OR P828(U)>57 THEN E$="NUM EXPECTED":GOSUB 2050
+3240 IF P828(U)>47 AND P828(U)<58 THEN N=N*10+P828(U)-48:U=U+1:GOTO 3240
+3250 IF T=0 THEN GOTO 3270
+3260 N=65536-N
+3270 RETURN
+3280 :
+3290 REM ----------------------------------------
+3300 REM"  {SHIFT-V}ARIABLE SUCHEN"
+3310 REM ----------------------------------------
+3320 REM INPUT: V$; OUTPUT VV
+3330 :
+3340 VV=0
+3350 IF V$(VV) = V$ THEN GOTO 3390
+3360 VV=VV+1
+3370 IF VV>=VP THEN VV=-1:RETURN:REM NOT FOUND
+3380 GOTO 3350
+3390 D=VA(VV):GOSUB 3810
+3400 VH=H:VL=L
+3410 RETURN
+3420 REM ----------------------------------------
+3430 REM" {SHIFT-Z}EILENNUMMER NACH {SHIFT-A}DRESSE WANDELN"
+3440 REM ----------------------------------------
+3450 REM IN: N ; OUT: H/L
+3460 D=-1:T9=0:H=0:L=0
+3470 IF L(T9)=N THEN D=LA(T9):GOTO 3500
+3480 T9=T9+1:IF T9<LL THEN GOTO 3470
+3490 GOTO 3510
+3500 GOSUB 3810
+3510 RETURN
+3520 :
+3530 REM ------------------------------
+3540 REM"  {SHIFT-V}{SHIFT-A}{SHIFT-R}{SHIFT-I}{SHIFT-A}{SHIFT-B}{SHIFT-L}{SHIFT-E}"
+3550 REM VV=INDEX VAR, VH/VL = ADRESSE
+3560 REM ------------------------------
+3570 :
+3580 V=P828(U):V$=CHR$(V)
+3590 V=P828(U+1)
+3600 IF (V>64 AND V<91)OR(V>47 AND V<58) THEN V$=V$+CHR$(V):U=U+1:GOTO 3590
+3610 U=U+1:T=P828(U)
+3620 IF T>90 THEN GOTO 3660:REM IF >'Z' ?
+3630 IF T<32 THEN GOTO 3660
+3640 IF (T=59)OR(T=44)OR(T=41) THEN GOTO 3660:REM ; , )
+3650 IF T>35 THEN GOTO 3610:REM IF ># ?
+3660 V$=LEFT$(V$,6)
+3670 IF VP=0 THEN GOTO 3770:REM FIRST VAR AT ALL? -->
+3680 I=0:VV=-1:REM VV=INDEX AUF GEFUNDENE VARIABLE, -1 = NOT FOUND
+3690 IF V$<>V$(I) THEN GOTO 3730
+3700 VV=I:REM VAR FOUND, INDEX MERKEN
+3710 D=VV*2+VO:GOSUB 3810:VH=H:VL=L
+3720 GOTO 3750
+3730 I=I+1: IF I<VP THEN GOTO 3690
+3740 :
+3750 V=1: REM FLAG: VARIABLE GELESEN
+3760 IF VV>=0 THEN RETURN
+3770 V$(VP)=V$:D=VO+2*VP:VA(VP)=D
+3780 VP=VP+1
+3790 REM PRINT "VAR ";V$;", VP=";VP
+3800 :
+3810 REM ------------------------------
+3820 REM"  {SHIFT-H}/{SHIFT-L}"
+3830 REM ------------------------------
+3840 :
+3850 IF D<0 THEN D=65536+D
+3860 H%=D/256:L=D-H%*256:H=H%
+3870 RETURN
+3880 :
+3890 REM ----------------------------------------
+3900 REM"  {SHIFT-V}={SHIFT-A}USDR."
+3910 REM ----------------------------------------
+3920 :
+3930 FOR I=0 TO 140:P828(I)=P828(I+1):NEXT
+3940 U=0
+3950 IF P828(U)<65 OR P828(U)>90 THEN E$="CHAR EXPECTED":GOTO 2050
+3960 REM PRINT "{SHIFT-V}AR={SHIFT-E}XPR"
+3970 V=P828(U)
+3980 V$=CHR$(V):U=U+1
+3990 V=P828(U)
+4000 IF(V>64 AND V<91)OR(V>47 AND V<58) THEN V$=V$+CHR$(V):U=U+1:GOTO 3990
+4010 IF P828(U)<>178 THEN E$="= EXPECTED":GOTO 2050:REM '=
+4020 V1$=V$:U=U+1:GOSUB 2320:REM AUSDRUCK AUSWERTEN
+4030 V$=V1$:GOSUB 3660:REM VARIABLE AUSWERTEN
+4040 REM D1=D
+4050 A$=CHR$($8D)+CHR$(L)+CHR$(H):GOSUB 820:REM " STA I"+V$
+4060 D=D+1:GOSUB 3810
+4070 A$=CHR$($8E)+CHR$(L)+CHR$(H):GOSUB 820:REM " STX I"+V$+"+1"
+4080 RETURN
+4090 :
+4100 REM --------------------------------------------
+4110 REM"  {SHIFT-E}NDE"
+4120 REM --------------------------------------------
+4130 REM PRINT "{SHIFT-E}ND OF INPUT FILE"
+4140 L(LL)=65535
+4150 A$=CHR$($60):GOSUB 820
+4160 VO=PC:REM START DER TABELLE MERKEN FUER PASS2
+4170 REM A$="ENDSTOP RTS":REM C64= JMP $A474, M65=?
+4180 REM PRINT "Z=";Z:IF Z>127 THEN GOTO LABEL6550: REM FLAG: NO VARS
+4190 IF VP=0 THEN GOTO 4270: REM JUMP, IF NO VAR READ
+4200 IF PA>1 THEN PRINT"VARIABLE ($";HEX$(VO);")"
+4210 A$=CHR$(0)+CHR$(0):REM 2 BYTE JE VARIABLE
+4220 FOR I=0 TO VP-1
+4230 IF PA=1 THEN VA(I)=PC:REM ADRESSE DER VARIABLEN SPEICHERN
+4240 GOSUB 820:REM "I"+V$(I)+" .WORD 0"
+4250 NEXT I
+4260 :
+4270 REM A$=" .END"
+4280 IF PA=2 THEN PRINT#3,CHR$(0);
+4290 DCLOSE#2:DCLOSE#3:REM PRINT "CLOSE 2:CLOSE 3"
+4300 :
+4310 PRINT"{DOWN}ERRORS";EC
+4320 T1%=TI-T1%
+4330 IF PA=2 THEN PRINT S$;" COMPILIERT";", ZEIT:";T1%;"S"
+4340 RETURN:REM END
+4350 REM --------------------------------------------
+4360 :
+4370 :
+4380 REM" {SHIFT-T}{SHIFT-B}{SHIFT-C}-{SHIFT-L}IB"
+4390 DATA  01,20,1E,20,E7,07,DE,9C, 3A,FE,02,30,3A,9E,38,32:REM 0000
+4400 DATA  32,34,3A,8F,54,42,43,20, 32,33,31,32,32,33,00,00:REM 0010
+4410 DATA  00,4C,00,22,85,16,86,17, 24,17,10,1B,48,A9,2D,20:REM 0020
+4420 DATA  D2,FF,38,A9,00,E5,16,85, 16,A9,00,E5,17,85,17,68
+4430 DATA  4C,46,20,85,16,86,17,A9, 00,8D,88,20,A0,08,A2,FF
+4440 DATA  38,A5,16,F9,89,20,85,16, A5,17,F9,8A,20,85,17,E8
+4450 DATA  B0,EF,A5,16,79,89,20,85, 16,A5,17,79,8A,20,85,17
+4460 DATA  8A,D0,07,AD,88,20,D0,09, F0,0A,A2,30,8E,88,20,09
+4470 DATA  30,20,D2,FF,88,88,10,C6, 60,00,01,00,0A,00,64,00
+4480 DATA  E8,03,10,27,85,63,86,64, A2,00,86,65,86,66,A0,10
+4490 DATA  90,22,06,61,26,62,26,65, 26,66,38,A5,65,E5,63,AA
+4500 DATA  A5,66,E5,64,90,06,86,65, 85,66,E6,61,88,D0,E3,A5
+4510 DATA  61,A6,62,60,46,66,66,65, 66,62,66,61,88,30,F0,90
+4520 DATA  F3,18,A5,65,65,63,85,65, A5,66,65,64,85,66,18,90
+4530 DATA  E3,85,04,86,05,A5,1A,85, 02,AD,04,11,48,A9,01,1C
+4540 DATA  04,11,20,6E,FF,68,8D,04, 11,58,60,08,DB,AB,D1,02:REM 00F0
+4550 DATA  20,77,FF,FB,28,60,08,DB, DA,AA,AB,D1,02,B5,01,C9:REM 0100
+4560 DATA  20,B0,02,A3,00,20,74,FF, FA,FB,28,29,FF,60,55,55:REM 0110
+4570 DATA  55,55,55,55,55,55,55,55, 55,55,55,55,55,55,55,55:REM 0120
+4580 DATA  55,55,55,55,55,55,55,55, 55,55,55,55,55,55,55,55:REM 0130
+4590 DATA  55,55,55,55,55,55,55,55, 55,55,55,55,55,55,55,55:REM 0140
+4600 DATA  55,55,55,55,55,55,55,55, 55,55,55,55,55,55,55,55:REM 0150
+4610 DATA  55,55,55,55,55,55,55,55, 55,55,55,55,55,55,55,55:REM 0160
+4620 DATA  55,55,55,55,55,55,55,55, 55,55,55,55,55,55,55,55:REM 0170
+4630 DATA  55,55,55,55,55,55,55,55, 55,55,55,55,55,55,55,55:REM 0180
+4640 DATA  55,55,55,55,55,55,55,55, 55,55,55,55,55,55,55,55:REM 0190
+4650 DATA  55,55,55,55,55,55,55,55, 55,55,55,55,55,55,55,55:REM 01A0
+4660 DATA  55,55,55,55,55,55,55,55, 55,55,55,55,55,55,55,55:REM 01B0
+4670 DATA  55,55,55,55,55,55,55,55, 55,55,55,55,55,55,55,55:REM 01C0
+4680 DATA  55,55,55,55,55,55,55,55, 55,55,55,55,55,55,55,55:REM 01D0
+4690 DATA  55,55,55,55,55,55,55,55, 55,55,55,55,55,55,55,55:REM 01E0
+4700 DATA  55,55,55,55,55,55,55,55, 55,55,55,55,55,55,55,55:REM 01F0
+4710 DATA  55,*                                            :REM 0200
+4720 :
+4730 REM ------------------------------
+4740 REM"  {SHIFT-R}{SHIFT-E}{SHIFT-M}$" - COMPILER FLAGS
+4750 REM ------------------------------
+4760 :
+4770 U=U+2:W=P828(U-1)
+4780 IF W<>81 THEN GOTO 4860:REM Q (QUIT COMPILER IF ERROR COUNT >0)
+4790 IF EC=0 THEN RETURN
+4800 :
+4810 DCLOSE#3:DCLOSE#2:REM PRINT "CLOSE 2:CLOSE 3"
+4820 :
+4830 PRINT:PRINT"***{SHIFT-A}BGEBROCHEN NACH";EC;"{SHIFT-F}EHLER(N)"
+4840 END
+4850 :
+4860 IF W<>65 THEN GOTO 4920:REM A (INSERT ASSEMBLER COMMAND)
+4870 U=U+1
+4880 W=P828(U):U=U+1
+4890 IF W>0 THEN A$=CHR$(W):GOSUB 820:GOTO4880
+4900 A$="":GOSUB 820
+4910 RETURN
+4920 IF W<>76 THEN RETURN:REM L (INCLUDE MUL/DIV LIBRARY)
+4930 Z=Z OR 64
+4940 RETURN
+4950 :
+4960 REM ------------------------------
+4970 REM"  {SHIFT-I}{SHIFT-F}/{SHIFT-T}{SHIFT-H}{SHIFT-E}{SHIFT-N}"
+4980 REM ------------------------------
+4990 :
+5000 REM PRINT "{SHIFT-I}{SHIFT-F}/{SHIFT-T}{SHIFT-H}{SHIFT-E}{SHIFT-N}"
+5010 GOSUB 2320:W=P828(U):IF W<$B1 THEN GOTO 2050:REM '>
+5020 IF W>$B3 THEN E$="IF ILL CHAR "+STR$(W):GOTO 2050:REM '<
+5030 REM AB HIER NUR '<, =, >
+5040 REM A$=" STA 36: STX 37"
+5050 A$=CHR$($85)+CHR$(36)+CHR$($86)+CHR$(37):GOSUB 820
+5060 U=U+1
+5070 IF W=$B3 AND P828(U)=$B1 THEN W=180:U=U+1:REM '<>
+5080 IF W=$B1 AND P828(U)=$B3 THEN W=180:U=U+1:REM '><
+5090 GOSUB 2320
+5100 REM A$=" CPX 37: BEQ"
+5110 A$=CHR$($E4)+CHR$(37)+CHR$($F0):GOSUB 820
+5120 CM$=CHR$($C5)+CHR$(36)
+5130 D=LA(LL):GOSUB 3810
+5140 A$=""
+5150 REM '<>
+5160 IF W=180 THEN A$=CHR$(05)+CHR$($D0)+CHR$(07)
+5170 IF W=180 THEN A$=A$+CHR$($4C)+CHR$(L)+CHR$(H)+CM$+CHR$($F0)+CHR$($F9)
+5180 REM '=
+5190 IF W=$B2 THEN A$=CHR$(03)+CHR$($4C)+CHR$(L)+CHR$(H)+CM$+CHR$($D0)+CHR$($F9)
+5200 REM '<
+5210 IF W=$B3 THEN A$=CHR$(07)+CHR$($90)+CHR$(2)+CHR$($B0)+CHR$(9)
+5220 IF W=$B3 THEN A$=A$+CHR$($4C)+CHR$(L)+CHR$(H)
+5230 IF W=$B3 THEN A$=A$+CM$+CHR$($90)+CHR$($F9)+CHR$($F0)+CHR$($F7)
+5240 REM '>
+5250 IF W=$B1 THEN A$=CHR$(07)+CHR$($B0)+CHR$(2)+CHR$($90)+CHR$(9)
+5260 IF W=$B1 THEN A$=A$+CHR$($4C)+CHR$(L)+CHR$(H)
+5270 IF W=$B1 THEN A$=A$+CM$+CHR$($B0)+CHR$($F9)+CHR$($F0)+CHR$($F7)
+5280 GOSUB 820
+5290 RETURN
+5300 :
+5310 REM ------------------------------
+5320 REM"  {SHIFT-P}{SHIFT-R}{SHIFT-I}{SHIFT-N}{SHIFT-T}"
+5330 REM ------------------------------
+5340 :
+5350 W=P828(U):IF W<32 THEN GOTO 5730
+5360 IF W=59 AND P828(U+1)<32 THEN RETURN
+5370 IF W=59 THEN U=U+1:GOTO 5310
+5380 IF W=199 THEN GOTO 5520:REM" {SHIFT-C}{SHIFT-H}{SHIFT-R}$
+5390 IF W=34  THEN GOTO 5580:REM" {SHIFT-S}TRING
+5400 REM ------------------------------
+5410 REM"  {SHIFT-P}{SHIFT-R}{SHIFT-I}{SHIFT-N}{SHIFT-T} {SHIFT-A}USDR."
+5420 REM PRINT#3," LDA #29"
+5430 REM PRINT#3," JSR $FFD2"
+5440 GOSUB 2320:REM A$=" STX 34: TAX: LDA 34":REM A/X TAUSCHEN
+5450 G=G OR 4
+5460 A$=CHR$($20)+CHR$($23)+CHR$($20):GOSUB 820:REM" JSR PRTSGN" - ZAHL IN A/X AUSGEBEN
+5470 REM C64 $BDCD, C128 $8E32, C65 $647F, M65 $????
+5480 A$=CHR$($A9)+" "+CHR$($20)+CHR$($D2)+CHR$($FF):GOSUB 820:REM " LDA #32: JSR $FFD2"
+5490 GOTO 5310
+5500 REM ------------------------------
+5510 REM"  {SHIFT-P}{SHIFT-R}{SHIFT-I}{SHIFT-N}{SHIFT-T} {SHIFT-C}{SHIFT-H}{SHIFT-R}$({SHIFT-A}USDR.)"
+5520 U=U+1:IF P828(U)<>40 THEN GOTO 2050
+5530 U=U+1:GOSUB 2320
+5540 A$=CHR$($20)+CHR$($D2)+CHR$($FF):GOSUB 820:REM " JSR $FFD2"
+5550 U=U+1:GOTO 5310
+5560 REM ------------------------------
+5570 REM"  {SHIFT-P}{SHIFT-R}{SHIFT-I}{SHIFT-N}{SHIFT-T} {SHIFT-S}TRING"
+5580 A$=CHR$($20)+CHR$($7D)+CHR$($FF):GOSUB 820:REM " JSR PRIMM, $FF7D"
+5590 G=G OR 2
+5600 REM A$=" .TEXT '":GOSUB 440
+5610 I=0
+5620 I=I+1:U=U+1:IF U>100 THEN GOTO 5680
+5630 IF I>20 THEN I=1:REM A$="'":A$=" .TEXT '"
+5640 IF P828(U)=34 THEN GOTO 5680
+5650 IF P828(U)=0 THEN GOTO 5680
+5660 A$=CHR$(P828(U)):GOSUB 820
+5670 GOTO 5620
+5680 REM A$="'"
+5690 A$=CHR$(0):GOSUB 820:REM " .BYTE 0"
+5700 U=U+1:GOTO 5310
+5710 REM
+5720 REM ZEILE ABSCHLIESSEN
+5730 A$=CHR$($A9)+CHR$(13)+CHR$($20)+CHR$($D2)+CHR$($FF):GOSUB 820:REM " LDA #13: JSR $FFD2"
+5740 RETURN
+5750 :
+5760 REM ------------------------------------
+5770 REM"  {SHIFT-G}{SHIFT-O}{SHIFT-T}{SHIFT-O}/{SHIFT-G}{SHIFT-O}{SHIFT-S}{SHIFT-U}{SHIFT-B}"
+5780 REM ------------------------------------
+5790 :
+5800 GOSUB 3110
+5810 REM IF V=0 THEN V$=MID$(STR$(N),2)
+5820 IF V<>0 THEN E$="GOTO/GOSUB":GOTO 2050
+5830 GOSUB 3420
+5840 A$=A$+CHR$(L)+CHR$(H):GOSUB 820
+5850 IF (PA=2) AND (D < 0) THEN E$="ILL TARGET":GOTO 2050
+5860 RETURN
+5870 :
+5880 REM ------------------------------------
+5890 REM"  {SHIFT-F}{SHIFT-O}{SHIFT-R}"
+5900 REM ------------------------------------
+5910 :
+5920 U=3:GOSUB 2320
+5930 REM
+5940 REM A1$=MID$(STR$(LP(LP)),2)
+5950 REM A$=" JMP LF"+A1$
+5960 D=LF(LP):GOSUB 3810:A$=CHR$($4C)+CHR$(L)+CHR$(H):GOSUB 820
+5970 HU=U:U=1
+5980 LP(LP)=PC:REM A$="F"+A1$+" ":GOSUB 440
+5990 GOSUB 2180:U=HU+1
+6000 REM A$=" STA 36: STX 37"
+6010 A$=CHR$($85)+CHR$(36)+CHR$($86)+CHR$(37)
+6020 GOSUB 820
+6030 GOSUB 2320
+6040 REM CPX $25: BEQ 4: BCS 11
+6050 A$=CHR$($E4)+CHR$($25)+CHR$($F0)+CHR$($04)+CHR$($B0)+CHR$($0B)
+6060 GOSUB 820
+6070 REM BCC 6
+6080 A$=CHR$($90)+CHR$($06)
+6090 GOSUB 820
+6100 REM CMP $24: BEQ 2: BCS 3
+6110 A$=CHR$($C5)+CHR$($24)+CHR$($F0)+CHR$($02)+CHR$($B0)+CHR$($03)
+6120 GOSUB 820
+6130 D=XA(LA):GOSUB 3810
+6140 A$=CHR$($4C)+CHR$(L)+CHR$(H):GOSUB 820:REM" JMP FF"+A1$
+6150 REM OHNE STEP BEFEHL, DANN PLUS 1 " LDA #1: LDX #0"
+6160 IF P828(U)<>169 THEN A$=CHR$($A9)+CHR$(1)+CHR$($A2)+CHR$(0):GOSUB820:GOTO 6180:REM 'STEP
+6170 U=U+1:GOSUB 2320
+6180 U=0  :B=170:GOSUB 2430:REM '+'
+6190 D=PC:GOSUB 3810:
+6200 LF(LP)=PC:REM"LF"+A1$+" "
+6210 LP=LP+1
+6220 U=1  :GOSUB 3530:GOTO 4050
+6230 :
+6240 REM ------------------------------------
+6250 REM"  {SHIFT-N}{SHIFT-E}{SHIFT-X}{SHIFT-T}"
+6260 REM ------------------------------------
+6270 :
+6280 LP=LP-1
+6290 D=LP(LP):GOSUB 3810
+6300 A$=CHR$($4C)+CHR$(L)+CHR$(H):GOSUB 820:REM" JMP F"+A1$
+6310 XA(LP)=PC
+6320 A$=CHR$($EA):GOSUB 820:REM"FF"+A1$+" NOP"
+6330 RETURN
+6340 :
+6350 REM ------------------------------------
+6360 REM"  {SHIFT-S}{SHIFT-Y}{SHIFT-S}"
+6370 REM ------------------------------------
+6380 :
+6390 GOSUB 2320
+6400 A$=CHR$($20)+CHR$($E0)+CHR$($20):REM" JSR SYSCALL"
+6410 GOSUB 820
+6420 RETURN
+6430 :
+6440 REM ------------------------------------
+6450 REM"  {SHIFT-P}{SHIFT-O}{SHIFT-K}{SHIFT-E}"
+6460 REM ------------------------------------
+6470 :
+6480 GOSUB 2320
+6490 A$=CHR$($85)+CHR$(36)+CHR$($86)+CHR$(37):REM" STA 36: STX 37"
+6500 GOSUB 820
+6510 REM
+6520 IF P828(U)<>44 THEN GOTO 2050
+6530 U=U+1:GOSUB 2320
+6540 A$=CHR$($A0)+CHR$(0)+CHR$($A2)+CHR$(36):REM" LDY #0: LDX #36"
+6550 GOSUB 820
+6560 A$=CHR$($20)+CHR$($FA)+CHR$($20):REM" JSR POKE"
+6570 RETURN
+6580 :
+6590 REM ------------------------------
+6600 REM"  {SHIFT-B}{SHIFT-A}{SHIFT-N}{SHIFT-K}"
+6610 REM ------------------------------
+6620 :
+6630 U=U+1:GOSUB 2320
+6640 A$=CHR$($8D)+CHR$($D1)+CHR$(2):REM" STA $2D1"
+6650 RETURN
+6660 REM
+6670 :
+6680 REM ------------------------------------
+6690 REM"  {SHIFT-E}{SHIFT-N}{SHIFT-D}, {SHIFT-S}{SHIFT-T}{SHIFT-O}{SHIFT-P}"
+6700 REM ------------------------------------
+6710 :
+6720 IF PA<2 THEN PC=PC+3:GOTO 6750
+6730 D=VO-1:GOSUB 3810
+6740 A$=CHR$($4C)+CHR$(L)+CHR$(H):GOSUB 820
+6750 RETURN
+6760 :
+6770 REM -----------------------------------------
+6780 REM"  {SHIFT-O}{SHIFT-P}{SHIFT-E}{SHIFT-N}"
+6790 REM -----------------------------------------
+6800 :
+6810 GOSUB 2320:A$=CHR$($48):GOSUB 820:REM " PHA" PARAMETER FN
+6820 IF P828(U)<>44 THEN GOTO 6960
+6830 U=U+1:GOSUB 2320:A$=CHR$($48):GOSUB 820:REM " PHA" PARAMETER GN
+6840 IF P828(U)<>44 THEN GOTO 6960
+6850 U=U+1:GOSUB 2320:A$=CHR$($48):GOSUB 820:REM " PHA" PARAMETER SA
+6860 IF P828(U)<>44 THEN GOTO 6960
+6870 L$="":U=U+1
+6880 IF P828(U)<>34 THEN GOTO 6960
+6890 REM FILENAME IN ""
+6900 U=U+1:W=P828(U):IF W=0 OR W=34 THEN GOTO 6930
+6910 L$=L$+CHR$(W)
+6920 GOTO 6900
+6930 SC$(SC)=L$:SC=SC+1
+6940 GOTO 6990
+6950 :
+6960 E$="OPEN F,G,S,"+CHR$(34)+"FNAME"+CHR$(34)
+6970 GOTO 2050
+6980 :
+6990 REM A$=" LDA #"+LEN(L$)+";OPEN"
+7000 A$=CHR$($D0)+CHR$(LEN(L$)):REM BNE *+ LEN(L$)
+7010 D=PC:GOSUB 3810:A$=L$:GOSUB 820
+7020 A$=CHR$($A9)+CHR$(LEN(L$)):GOSUB 820:REM LDA #LEN
+7030 A$=CHR$($A0)+CHR$(H)+CHR$($A2)+CHR$(L):GOSUB 820:REM  LDY #2:LDX #0
+7040 A$=CHR$($20)+CHR$($BD)+CHR$($FF):GOSUB 820:REM  JSR $FFBD;SETNAM
+7050 A$=CHR$($68)+CHR$($A8)+CHR$($68)+CHR$($AA)+CHR$($68):GOSUB 820:REM PLA:TAY:PLA:TAX:PLA
+7060 A$=CHR$($20)+CHR$($BA)+CHR$($FF):GOSUB 820:REM " JSR $FFBA;SETLFS"
+7070 A$=CHR$($20)+CHR$($C0)+CHR$($FF):GOSUB 820:REM " JSR $FFC0;OPEN"
+7080 RETURN
+7090 :
+7100 REM -----------------------------------------
+7110 REM"  {SHIFT-C}{SHIFT-L}{SHIFT-O}{SHIFT-S}{SHIFT-E}"
+7120 REM -----------------------------------------
+7130 :
+7140 A$=CHR$($20)+CHR$($CC)+CHR$($FF):GOSUB 820:REM" JSR $FFCC ;CLRCHN"
+7150 GOSUB 2320
+7160 A$=CHR$($20)+CHR$($C3)+CHR$($FF):GOSUB 820:REM" JSR $FFC3 ;CLOSE"
+7170 RETURN
+7180 :
+7190 REM -----------------------------------------
+7200 REM"  {SHIFT-G}{SHIFT-E}{SHIFT-T}#"
+7210 REM -----------------------------------------
+7220 :
+7230 B=P828(U):IF B<>35 THEN GOTO 7280:REM '#'
+7240 U=U+1:GOSUB 2320:
+7250 A$=CHR$($AA):GOSUB 820:REM" TAX"
+7260 A$=CHR$($20)+CHR$($C6)+CHR$($FF):GOSUB 820:REM JSR $FFC6 ;CHKIN
+7270 U=U+1
+7280 A$=CHR$($20)+CHR$($E4)+CHR$($FF):GOSUB 820:REM" JSR $FFE4 ;GETIN"
+7290 GOSUB 3110:IF V=0 THEN GOTO 2050
+7300 A$=CHR$($A2)+CHR$(0)+CHR$($8D)+CHR$(L)+CHR$(H):GOSUB 820:REM " LDX #0: STA I"+V$""
+7310 D=D+1:GOSUB 3810
+7320 A$=CHR$($8E)+CHR$(L)+CHR$(H):GOSUB 820:REM STX I"+V$+"+1
+7330 IF B=35 THEN A$=CHR$($20)+CHR$($CC)+CHR$($FF):GOSUB 820:REM" JSR $FFCC ;CLRCHN"
+7340 RETURN
+7350 :
+7360 REM -----------------------------------------
+7370 REM"  {SHIFT-P}{SHIFT-R}{SHIFT-I}{SHIFT-N}{SHIFT-T}#"
+7380 REM -----------------------------------------
+7390 :
+7400 GOSUB 2320
+7410 A$=CHR$($AA):GOSUB 820::REM" TAX"
+7420 A$=CHR$($20)+CHR$($C9)+CHR$($FF):GOSUB 820:REM "JSR $FFC9 ;CHKOUT"
+7430 U=U+1
+7440 GOSUB 5310
+7450 A$=CHR$($20)+CHR$($CC)+CHR$($FF):GOSUB 820:REM" JSR $FFCC ;CLRCHN"
+7460 RETURN
+7470 :
+7480 REM
+7490 REM ----------
+7500 REM {SHIFT-E}{SHIFT-O}{SHIFT-F}
+7510 REM ----------
